@@ -1,59 +1,132 @@
 from tkinter import *
+import tkinter as tk
+from matplotlib.figure import Figure 
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  
+NavigationToolbar2Tk) 
+import numpy as np
+import matplotlib.pyplot as plt
 
-master = Tk()
-master.title("Private Backtest Program")
+class App():
+    def __init__(self, master):
+        self.master = master
+        self.volatility = None
+        self.Current_Price = None
+        self.Drift = None 
+        self.Time_Increment = None 
+        self.Current_Volume = None
+        self.Average_Volume = None
+        self.ATR = None
+        self.RandomNoise = None
 
+        self.base()
+        
+    def base(self):
+        
+        tk.Label(self.master, text="Volatility:").grid(row=0)
+        self.e1 = tk.Entry(self.master)
+        self.e1.grid(row=0, column=1)
 
-Label(master, text="volatility").grid(row=0)  # Volatility (σ): Measures the rate of price fluctuations (percentage) over time.
-Label(master, text="Current Price").grid(row=1) #The current price of the asset being evaluated.
-Label(master, text="Drift").grid(row=2) #The expected return or trend in the price movement over time (a small value representing expected upward/downward
-Label(master, text="Time Increment").grid(row=3) #Time Increment (dt): The time step for each price movement (e.g., 1/252 for daily trading steps).
-Label(master, text="Current Volume").grid(row=4) #Current Volume (Volume_t): The current number of shares or contracts traded.
-Label(master, text="Average Volume").grid(row=5) #Average Volume: The average volume traded over a given historical period.
-Label(master, text="Average True Range").grid(row=7) #Average True Range (ATR): A technical indicator representing the average price range of the asset over a specific period.
-Label(master, text="Random Noise").grid(row=8) # Random Noise (dW_t): A random value from a normal distribution to simulate unpredictable price changes (often related to volatility).
+        tk.Label(self.master, text="Current Price:").grid(row=1)
+        self.e2 = tk.Entry(self.master)
+        self.e2.grid(row=1, column=1)
 
-e1 = Entry(master)
-e1.grid(row=0, column=1)
-e2 = Entry(master)
-e2.grid(row=1, column=1)
-e3 = Entry(master)
-e3.grid(row=2, column=1)
-e4 = Entry(master)
-e4.grid(row=3, column=1)
-e5 = Entry(master)
-e5.grid(row=4, column=1)
-e6 = Entry(master)
-e6.grid(row=5, column=1)
-e8 = Entry(master)
-e8.grid(row=7, column=1)
-e9 = Entry(master)
-e9.grid(row=8, column=1)
+        tk.Label(self.master, text="Drift:").grid(row=2)
+        self.e3 = tk.Entry(self.master)
+        self.e3.grid(row=2, column=1)
 
+        tk.Label(self.master, text="Time Increment:").grid(row=3)
+        self.e4 = tk.Entry(self.master)
+        self.e4.grid(row=3, column=1)
 
-def submit_action():
-    volatility = float(e1.get()) #here what we are doing is basicly creating variables, and inside them we are saying for them to "get" the input box from abox
-    Current_Price = float(e2.get())
-    Drift = float(e3.get())
-    Time_Increment = float(e4.get())
-    Current_Volume = float(e5.get())
-    Average_Volume = float(e6.get())
-    ATR = float(e8.get())
-    RandomNoise = float(e9.get())
+        tk.Label(self.master, text="Current Volume:").grid(row=4)
+        self.e5 = tk.Entry(self.master)
+        self.e5.grid(row=4, column=1)
+
+        tk.Label(self.master, text="Average Volume:").grid(row=5)
+        self.e6 = tk.Entry(self.master)
+        self.e6.grid(row=5, column=1)
+
+        tk.Label(self.master, text="ATR:").grid(row=6)
+        self.e8 = tk.Entry(self.master)
+        self.e8.grid(row=6, column=1)
+
+        tk.Label(self.master, text="Random Noise:").grid(row=7)
+        self.e9 = tk.Entry(self.master)
+        self.e9.grid(row=7, column=1)
+
+        # Submit button
+        self.submit_btn = tk.Button(self.master, text="Submit", command=self.equation)
+        self.submit_btn.grid(row=8, columnspan=2)
+
+        # Plot button
+        self.plot_btn = tk.Button(self.master, text="Plot GBM", command=self.plot_gbm)
+        self.plot_btn.grid(row=9, columnspan=2)
+
+        # Result label
+        self.result_label = tk.Label(self.master, text="")
+        self.result_label.grid(row=10, columnspan=2)
+
+    def equation(self):
+        self.volatility = float(self.e1.get())
+        self.Current_Price = float(self.e2.get().replace(",", "").replace("/", ""))
+        self.Drift = float(self.e3.get().replace(",", "").replace("/", ""))
+        self.Time_Increment = float(self.e4.get().replace(",", "").replace("/", ""))
+        self.Current_Volume = float(self.e5.get().replace(",", "").replace("/", ""))
+        self.Average_Volume = float(self.e6.get().replace(",", "").replace("/", ""))
+        self.ATR = float(self.e8.get().replace(",", "").replace("/", ""))
+        self.RandomNoise = float(self.e9.get().replace(",", "").replace("/", ""))
+        
+        vol_adjustment = self.volatility * (self.Current_Volume / self.Average_Volume)
+        atr_adjustment = self.ATR / self.Current_Price
     
-    vol_adjustment = volatility * (Current_Volume / Average_Volume)
-    atr_adjustment = ATR / Current_Price
+        dP_t = self.Current_Price * (self.Drift * self.Time_Increment + (vol_adjustment + atr_adjustment) * self.RandomNoise)
+        new_price = self.Current_Price + dP_t
     
-    dP_t = Current_Price * (Drift * Time_Increment + (vol_adjustment + atr_adjustment) * RandomNoise) #simple represation of equation
-    new_price = Current_Price + dP_t
+        self.result_label.config(text=f"New Price: {new_price:.2f}")
     
-    result_label.config(text=f"New Price: {new_price:.2f}")
+    def plot_gbm(self):
+        if self.volatility is None or self.Time_Increment is None:
+            return
 
-submit_button = Button(master, text="Submit", command=submit_action)
-submit_button.grid(row=8, column=2)
+       
+        S0 = self.Current_Price  # Initial stock price
+        mu = self.Drift  # Drift rate
+        sigma = self.volatility  # Volatility
+        T = 2  # Total time (1 year)
+        dt = self.Time_Increment  # Time increment
+        N = int(T / dt)  # Number of time steps
+        M = 10  # Number of paths to simulate
 
-result_label = Label(master, text="New Price: ")
-result_label.grid(row=9, column=1)
+        
+        t = np.linspace(0, T, N)
 
-master.mainloop()
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for i in range(M):
+            # Generate random noise
+            W = np.random.normal(0, 1, N)  # Brownian increments
+            # Simulate the GBM path
+            S = S0 * np.exp(np.cumsum((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * W))
+            plt.plot(t, S, label=f'Path {i + 1}')  # Label each path
+        ax.set_title('Geometric Brownian Motion (GBM) Paths')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Price')
+        
+        ax.set_title('Geometric Brownian Motion (GBM) Paths')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Price')
+    
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1)) 
+        
+        plt.subplots_adjust(left=0.15, bottom=0.15, top=0.9)
+        
+        canvas = FigureCanvasTkAgg(fig, master=root)
+        canvas.draw()
 
+        canvas.get_tk_widget().grid(row=11, column=0, columnspan=2, padx=500, pady=20, sticky='nsew')
+
+        
+root = tk.Tk()
+root.title("GBM Simulation")
+root.geometry("1280x1020") 
+app = App(root)
+root.mainloop()
