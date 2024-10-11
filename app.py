@@ -17,10 +17,6 @@ class App():
         self.Current_Price = None
         self.Drift = None 
         self.Time_Increment = None 
-        self.Current_Volume = None
-        self.Average_Volume = None
-        self.ATR = None
-        self.RandomNoise = None
         self.actual = None
         self.Forecast = None
         
@@ -48,22 +44,6 @@ class App():
         self.e4 = tk.Entry(self.master)
         self.e4.grid(row=3, column=1, sticky='w')
 
-        tk.Label(self.master, text="Current Volume:").grid(row=4, column=0, padx=(20, 10), sticky='e')
-        self.e5 = tk.Entry(self.master)
-        self.e5.grid(row=4, column=1, sticky='w')
-
-        tk.Label(self.master, text="Average Volume:").grid(row=5, column=0, padx=(20, 10), sticky='e')
-        self.e6 = tk.Entry(self.master)
-        self.e6.grid(row=5, column=1, sticky='w')
-
-        tk.Label(self.master, text="ATR:").grid(row=6, column=0, padx=(20, 10), sticky='e')
-        self.e8 = tk.Entry(self.master)
-        self.e8.grid(row=6, column=1, sticky='w')
-
-        tk.Label(self.master, text="Random Noise:").grid(row=7, column=0, padx=(20, 10), sticky='e')
-        self.e9 = tk.Entry(self.master)
-        self.e9.grid(row=7, column=1, sticky='w')
- 
         self.submit_btn = tk.Button(self.master, text="Sumbit", command=self.CPI_params)#the comand servers for the button knows what it as to "Call"
         self.submit_btn.grid(row=8, column=1, padx=10, pady=30, sticky='w')
         
@@ -145,43 +125,40 @@ class App():
                 canvas.draw()
                 canvas.get_tk_widget().pack()
         
-    
-    def plot_simulation(self):
-        if self.volatility is None or self.Time_Increment is None: #if the volatility and Time Increment have values on it, return this:
-            return
+        if self.cpi_var.get():
+            if self.actual < self.Forecast:  
+                S0 = 100  # Initial stock price
+                mu = -0.01   # Drift rate
+                sigma = 0.25  # Volatility
+                T = 180   # Total time 
+                dt = 1 # Time increment
+                N = int(T / dt)  # Number of time steps
+                M = 1  # Number of paths to simulate
 
-        S0 = self.Current_Price  # Initial stock price
-        mu = self.Drift  # Drift rate
-        sigma = self.volatility  # Volatility
-        T = 2  # Total time (2 years)
-        dt = self.Time_Increment  # Time increment
-        N = int(T / dt)  # Number of time steps
-        M = 10  # Number of paths to simulate
+                t = np.linspace(0, T, N)
 
-        t = np.linspace(0, T, N)
+                for widget in self.plot_frame.winfo_children():
+                    widget.destroy()
 
-        # Create a new window for the plot
-        window = Toplevel(self.master)
-        window.title("Simulated Stock Price Paths")
+                fig = Figure(figsize=(10, 5), dpi=100)
+                plot1 = fig.add_subplot(111)
+                
+                bias = -0.01
 
-        fig = Figure(figsize=(5, 5), dpi=100)#Size of the plot
-        plot1 = fig.add_subplot(111)
+                for i in range(M):
+                    W = np.random.normal(0, 1, N)  # Brownian increments
+                    S = S0 * np.exp(np.cumsum((mu - 0.5 * sigma**2) * dt + (sigma * np.sqrt(dt) * W) + bias * dt))
+                    plot1.plot(t, S, label=f'Path {i + 1}')
 
-        for i in range(M):#So here is for iliterate in the range of what we set up on M
-            W = np.random.normal(0, 1, N)  # Brownian increments
-            S = S0 * np.exp(np.cumsum((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * W))
-            plot1.plot(t, S, label=f'Path {i + 1}')  # Label each path
+                plot1.set_title('Backtest')
+                plot1.set_xlabel('Time')
+                plot1.set_ylabel('Stock Price')
+                plot1.legend()
 
-        plot1.set_title('Simulated Stock Price Paths')
-        plot1.set_xlabel('Time (Years)')
-        plot1.set_ylabel('Stock Price')
-        plot1.legend()
-
-
-        canvas = FigureCanvasTkAgg(fig, master=window)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
-
+                canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+                canvas.draw()
+                canvas.get_tk_widget().pack()
+        
 if __name__=='__main__': #the mains function to call 
    root = tk.Tk()
    root.title("GBM Simulation")
